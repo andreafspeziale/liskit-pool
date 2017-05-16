@@ -4,13 +4,15 @@
 
 > With love by liskit (donations @ 10310263204519541551L) delegate
 
-## installation 
+liskit-pool back-end. Attached to my liskit-dashboard repository.
+
+## Install 
 
     virtualenv env
     source env/bin/activate
     pip install -r requirements.txt
 
-## configuration
+## Configuration
 
     cp config.ini.sample in config.ini
 
