@@ -1,0 +1,23 @@
+[Node]
+protocol: http://
+ip:
+port: :
+getvotersendpoint:  /api/delegates/voters?publicKey=
+paymentendpoint: /api/transactions
+getbalanceendpoint: /api/accounts/getBalance?address=
+getdelegateinfo: /api/delegates/get?username=
+
+[Account]
+username:
+address:
+secret:
+second_secret:
+pub_key:
+
+[Pool]
+dynamic_pool:
+top_20_%:
+top_50_%:
+top_101_%:
+static_%:
+swap_holding:
