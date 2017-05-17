@@ -148,7 +148,7 @@ Calculate voter payout
 """
 def calculate_payment(score,balance,totscore):
     if(parser.get('Pool','dynamic_pool')):
-        perc_of_split = float(calc_pool_perc())
+        perc_of_split = calc_pool_perc()
     else:
         perc_of_split = float(parser.get('Pool','static_%'))
 
