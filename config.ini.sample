@@ -6,6 +6,7 @@ getvotersendpoint:  /api/delegates/voters?publicKey=
 paymentendpoint: /api/transactions
 getbalanceendpoint: /api/accounts/getBalance?address=
 getdelegateinfo: /api/delegates/get?username=
+getforgeddiff: /api/delegates/forging/getForgedByAccount?generatorPublicKey={PUBLICKEY}&start={LAST_PAYOUT}&end={TODAY_PAYOUT}
 
 [Account]
 username:

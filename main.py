@@ -6,27 +6,36 @@ from pymongo import MongoClient
 from flask import jsonify
 from flask_cors import CORS
 from ConfigParser import SafeConfigParser
-import os
+import os, time, datetime
 
+# flask settings
 app = Flask(__name__)
 CORS(app)
 
+# parser
 parser = SafeConfigParser()
 parser.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini'))
 
+# mongodb
 client = MongoClient('mongodb://localhost:27017/')
 db = client.lisk_pool
 
+# config
 host = parser.get('Node', 'protocol') + parser.get('Node', 'ip') + parser.get('Node', 'port')
 endpoint = parser.get('Node', 'getbalanceendpoint')
 address = parser.get('Account', 'address')
-
+getforgeddiff = parser.get('Node', 'getforgeddiff')
 getdelegateinfo = parser.get('Node', 'getdelegateinfo')
 pub_key = parser.get('Account', 'pub_key')
 username = parser.get('Account', 'username')
-getdelegateinfo = parser.get('Node', 'getdelegateinfo')
+
 
 def calc_pool_perc():
+    """
+
+    :return: pool % settings based on pool rank
+    """
+
     r = requests.get(host + getdelegateinfo + username)
     rate = json.loads(r.text)['delegate']['rate']
     if rate >= 50:
@@ -36,7 +45,16 @@ def calc_pool_perc():
     if rate < 20:
         return float(parser.get('Pool', 'top_20_%'))
 
+
 def calculate_voter_score(voter_days, voter_balance, voters):
+    """
+
+    :param voter_days:
+    :param voter_balance:
+    :param voters:
+    :return: voter score
+    """
+
     cursor = voters.find({})
 
     pool_days = 0
@@ -58,23 +76,29 @@ def calculate_voter_score(voter_days, voter_balance, voters):
     return round(score, 3)
 
 
-def get_current_pool_balance():
+def forged_from_last_payout():
+    """
 
-    r = requests.get(host + endpoint + address)
+    :return: forged token since last payday
+    """
 
-    balance = json.loads(r.text)['balance']
+    last_payout = db.payouts.find({}).sort([('date', -1)]).limit(1)
+    r = requests.get(host + getforgeddiff.format(PUBLICKEY=pub_key, LAST_PAYOUT=str(last_payout[0]['date']), TODAY_PAYOUT=str(int(time.time()))))
 
-    return int(balance)-int(parser.get('Pool', 'swap_holding'))
+    response = {'forged': int(json.loads(r.text)['forged']), 'last_pay_day': datetime.datetime.fromtimestamp(
+        last_payout[0]['date']
+    ).strftime('%d-%m-%Y')}
+
+    return response
 
 
-@app.route("/getforginginfo/<string:address>", methods=['GET'])
+@app.route("/getforginginfo/<string:address>", methods=['GET'], endpoint='getforginginfo')
 def get_forging_info(address):
+    """
 
-    # How much is earning in each payout
-    # He's scoreboard
-    # Days in pool
-
-    # There is also myself as voter
+    :param address:
+    :return: voter forging stats API
+    """
 
     voters = db.voters
     voter = voters.find_one({'address': address})
@@ -88,10 +112,10 @@ def get_forging_info(address):
 
     if 'pending_balance' in voter:
         pending_balance = int(voter['pending_balance'])
-        balance = (((get_current_pool_balance() * perc_of_split) * score) + pending_balance) - 10000000
+        balance = ((((forged_from_last_payout()['forged']) * perc_of_split) * score) + pending_balance) - 10000000
     else:
         pending_balance = 0
-        balance = ((get_current_pool_balance() * perc_of_split) * score) - 10000000
+        balance = (((forged_from_last_payout()['forged']) * perc_of_split) * score) - 10000000
 
 
     if voter:
@@ -100,5 +124,19 @@ def get_forging_info(address):
         output = "No such name"
     return jsonify({'result': output})
 
+
+@app.route("/getlastpayout/", methods=['GET'], endpoint='getlastpayout')
+def get_last_payout_info():
+    """
+
+    :return: forged token since last payday API
+    """
+
+    forged = forged_from_last_payout()['forged']
+    date = forged_from_last_payout()['last_pay_day']
+    response = {'forged': forged, 'date': date}
+    return jsonify({'result': response})
+
+
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0', threaded=True)

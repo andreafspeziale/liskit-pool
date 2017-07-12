@@ -3,45 +3,37 @@ import os
 import requests, json, logging
 from ConfigParser import SafeConfigParser
 from pymongo import MongoClient
+import time
 
+# log configuration
 logging.basicConfig(format='[%(asctime)s] %(message)s', filename='split-log.log', level=logging.INFO)
 
-"""
-MongoDB connection
-
-"""
-
+# mongodb
 client = MongoClient('mongodb://localhost:27017/')
 db = client.lisk_pool
 
-
-"""
-Parser config
-
-"""
-
+# parser config
 parser = SafeConfigParser()
 parser.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini'))
 
-"""
-Lisk api endpoints
-
-"""
+# endpoints
 host = parser.get('Node', 'protocol') + parser.get('Node', 'ip') + parser.get('Node', 'port')
+getforgeddiff = parser.get('Node', 'getforgeddiff')
 getbalanceendpoint = parser.get('Node', 'getbalanceendpoint')
 username = parser.get('Account', 'username')
 address = parser.get('Account', 'address')
 username = parser.get('Account', 'username')
 paymentendpoint = parser.get('Node', 'paymentendpoint')
 getdelegateinfo = parser.get('Node', 'getdelegateinfo')
+publickey = parser.get('Account', 'pub_key')
 
-""":
-Calculate pool % based on rank
-     
-:return: float
-"""
 
 def calc_pool_perc():
+    """
+
+    :return: % of sharing
+    """
+
     r = requests.get(host + getdelegateinfo + username)
     rate = json.loads(r.text)['delegate']['rate']
     if rate >= 50:
@@ -51,17 +43,14 @@ def calc_pool_perc():
     if rate < 20:
         return float(parser.get('Pool', 'top_20_%'))
 
-""":
-Calculate pool
-    pool_days: sum of days in pool of each voter
-    voters_tot_balance: sum of balance of each voter in pool
-    totscore: score of the pool
-
-:param collection: mongo voters collection 
-:return: dict
-"""
 
 def calculate_total(collection):
+    """
+
+    :param collection: voters
+    :return: sum of voters stats
+    """
+
     pool_days = 0
     voters_tot_balance = 0
     totscore = 0
@@ -86,31 +75,28 @@ def calculate_total(collection):
     return total
 
 
-"""
-Calculate score of a single voter
-
-:param voter_days: amount of voter days in pool  
-:param pool_days: sum of voters days in pool
-:param voter_balance: voter balance
-:param voters_tot_balance: sum of voters balance in pool
-
-:return: score for the single voter
-"""
-
-
 def calculate_score(voter_days, pool_days, voter_balance, voters_tot_balance):
+    """
+
+    :param voter_days:
+    :param pool_days:
+    :param voter_balance:
+    :param voters_tot_balance:
+    :return: voter score
+    """
+
     score = ((voter_days / pool_days) + (voter_balance / voters_tot_balance))
     return round(score, 3)
 
-"""
-Make payment API
 
-:param address: voter address for payout  
-:param amount: amount of pay
-
-:return: string 
-"""
 def make_payment(address, amount):
+    """
+
+    :param address:
+    :param amount:
+    :return: payment API call
+    """
+
     body = {}
     headers = {'Content-type': 'application/json'}
     body['secret'] = parser.get('Account', 'secret')
@@ -126,28 +112,27 @@ def make_payment(address, amount):
     )
     return response
 
-"""
-Get pool balance API
 
-:param address: voter address for payout  
-:param amount: amount of pay
-
-:return: pool balance 
-"""
 def get_current_balance():
+    """
+
+    :return:
+    """
+
     r = requests.get(host + getbalanceendpoint + address)
     return int(json.loads(r.text)['balance']) - int(parser.get('Pool', 'swap_holding'))
 
-"""
-Calculate voter payout
 
-:param score: voter score  
-:param balance: pool balance
+def calculate_payment(score, balance, totscore):
+    """
 
-:return: payment 
-"""
-def calculate_payment(score,balance,totscore):
-    if(parser.get('Pool','dynamic_pool')):
+    :param score:
+    :param balance:
+    :param totscore:
+    :return:
+    """
+
+    if(parser.get('Pool', 'dynamic_pool')):
         perc_of_split = calc_pool_perc()
     else:
         perc_of_split = float(parser.get('Pool','static_%'))
@@ -156,22 +141,40 @@ def calculate_payment(score,balance,totscore):
     return payment
 
 
+def get_last_payout():
+    """
+
+    :return: forged diff from last payday
+    """
+
+    last_payout = db.payouts.find({}).sort([('date', -1)]).limit(1)
+    r = requests.get(host + getforgeddiff.format(PUBLICKEY=publickey, LAST_PAYOUT=str(last_payout[0]['date']), TODAY_PAYOUT=str(int(time.time()))))
+    forged = int(json.loads(r.text)['forged'])
+    return forged
+
+
+# get all voters
 voters_collection = db.voters
 voters = voters_collection.find()
 
+# get sum from voters
 tot = calculate_total(voters)
-forger_balance = get_current_balance()
 
+# rewind voters collection
 voters.rewind()
+
+# get diff forged from last payday
+last_payout = get_last_payout()
 
 for v in voters:
     if int(v['balance']) != 0:
+
         voter_score = calculate_score(v['day_in_pool'],tot['pool_days'],int(v['balance']),tot['voters_tot_balance'])
 
         if 'pending_balance' in v:
-            to_pay = calculate_payment(voter_score,forger_balance,tot['totscore']) - 10000000 + int(v['pending_balance'])
+            to_pay = calculate_payment(voter_score, last_payout, tot['totscore']) - 10000000 + int(v['pending_balance'])
         else:
-            to_pay = calculate_payment(voter_score, forger_balance, tot['totscore']) - 10000000
+            to_pay = calculate_payment(voter_score, last_payout, tot['totscore']) - 10000000
 
         # if to pay > 1 LSK
         if to_pay > 100000000:
@@ -201,3 +204,10 @@ for v in voters:
                 True)
             info_str = "{} pending".format(v['address'])
             logging.info(info_str)
+
+
+# insert last payout data
+db.payouts.insert_one({
+            'date': int(time.time()),
+            'current_balance': get_current_balance()
+        })
