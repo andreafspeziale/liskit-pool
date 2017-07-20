@@ -132,7 +132,7 @@ def calculate_payment(score, balance, totscore):
     :return:
     """
 
-    if(parser.get('Pool', 'dynamic_pool')):
+    if(parser.get('Pool', 'dynamic_pool') == 'True'):
         perc_of_split = calc_pool_perc()
     else:
         perc_of_split = float(parser.get('Pool','static_%'))

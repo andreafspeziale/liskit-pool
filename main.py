@@ -105,7 +105,7 @@ def get_forging_info(address):
 
     score = calculate_voter_score(voter['day_in_pool'], int(voter['balance']), voters)
 
-    if (parser.get('Pool', 'dynamic_pool')):
+    if (parser.get('Pool', 'dynamic_pool') == 'True'):
         perc_of_split = float(calc_pool_perc())
     else:
         perc_of_split = float(parser.get('Pool', 'static_%'))
