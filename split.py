@@ -190,7 +190,7 @@ for v in voters:
                     True)
             # pay and stop
             res = make_payment(v['address'],to_pay)
-            info_str = "{} paid".format(res)
+            info_str = "{} paid --> {}".format(res, round(to_pay/100000000, 3))
             logging.info(info_str)
         else:
             # write pending db in database for that user
@@ -202,7 +202,7 @@ for v in voters:
                     }
                 },
                 True)
-            info_str = "{} pending".format(v['address'])
+            info_str = "{} pending --> {}".format(v['address'], round(to_pay/100000000, 3))
             logging.info(info_str)
 
 
