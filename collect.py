@@ -3,13 +3,13 @@ from ConfigParser import SafeConfigParser
 from pymongo import MongoClient
 import os
 
-# mongodb
-client = MongoClient('mongodb://localhost:27017/')
-db = client.lisk_pool
-
 # parser
 parser = SafeConfigParser()
 parser.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini'))
+
+# mongodb
+client = MongoClient('mongodb://localhost:27017/')
+db = client.parser.get('DB', 'name')
 
 # logging
 logging.basicConfig(format='[%(asctime)s] %(message)s', filename='collect-log.log', level=logging.INFO)
@@ -83,3 +83,7 @@ for v in voters:
         info_str = '{} welcome'.format(v['username'])
     logging.info(info_str)
 
+# check if a payout is ever be done, if not add an empty
+collections = db.collection_names()
+if "payouts" not in db.collection_names():
+    db.payouts.insert({'date': datetime.datetime.now(), 'current_balance': 0})

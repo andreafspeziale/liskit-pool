@@ -8,13 +8,13 @@ import time
 # log configuration
 logging.basicConfig(format='[%(asctime)s] %(message)s', filename='split-log.log', level=logging.INFO)
 
-# mongodb
-client = MongoClient('mongodb://localhost:27017/')
-db = client.lisk_pool
-
 # parser config
 parser = SafeConfigParser()
 parser.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini'))
+
+# mongodb
+client = MongoClient('mongodb://localhost:27017/')
+db = client.parser.get('DB', 'name')
 
 # endpoints
 host = parser.get('Node', 'protocol') + parser.get('Node', 'ip') + parser.get('Node', 'port')

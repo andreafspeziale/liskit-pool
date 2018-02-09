@@ -18,7 +18,7 @@ parser.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini
 
 # mongodb
 client = MongoClient('mongodb://localhost:27017/')
-db = client.lisk_pool
+db = client.parser.get('DB', 'name')
 
 # config
 host = parser.get('Node', 'protocol') + parser.get('Node', 'ip') + parser.get('Node', 'port')
