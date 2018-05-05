@@ -74,10 +74,10 @@ def calculate_voter_score(voter_days, voter_balance, voters):
 
     for i in cursor:
         # i['score'] = (i['day_in_pool']/pool_days) + (int(i['balance']) / voters_balance)
-        i['score'] = (i['day_in_pool'] * int(i['balance'])) / (pool_days * voters_tot_balance)
+        i['score'] = (i['day_in_pool'] * int(i['balance'])) / (pool_days * voters_balance)
         totscore += i['score']
 
-    score = (voter_days * voter_balance) / (pool_days * voters_balance))
+    score = (voter_days * voter_balance) / (pool_days * voters_balance)
     tot_score = totscore
     return round(score, 5)
 
