@@ -10,7 +10,7 @@ parser.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini
 # mongodb
 client = MongoClient('mongodb://localhost:27017/')
 db_name = parser.get('DB', 'name')
-db = client.db_name
+db = client[db_name]
 
 # logging
 logging.basicConfig(format='[%(asctime)s] %(message)s', filename='collect-log.log', level=logging.INFO)

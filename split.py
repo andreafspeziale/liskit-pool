@@ -15,7 +15,7 @@ parser.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config.ini
 # mongodb
 client = MongoClient('mongodb://localhost:27017/')
 db_name = parser.get('DB', 'name')
-db = client.db_name
+db = client[db_name]
 
 # endpoints
 host = parser.get('Node', 'protocol') + parser.get('Node', 'ip') + parser.get('Node', 'port')
