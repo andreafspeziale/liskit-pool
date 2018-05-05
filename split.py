@@ -66,15 +66,10 @@ def calculate_total(collection):
 
     cursor.rewind()
 
-    print voters_tot_balance
-    print pool_days
-
     for i in cursor:
         # i['score'] = (i['day_in_pool'] / pool_days) + (int(i['balance']) / voters_tot_balance)
         i['score'] = (i['day_in_pool'] * int(i['balance'])) / (pool_days * voters_tot_balance)
         totscore += i['score']
-
-    print totscore
 
     total = dict()
     total['pool_days'] = pool_days
