@@ -28,6 +28,8 @@ paymentendpoint = parser.get('Node', 'paymentendpoint')
 getdelegateinfo = parser.get('Node', 'getdelegateinfo')
 publickey = parser.get('Account', 'pub_key')
 
+transaction_cost = parser.get('Payments', 'cost')
+payment_threshold = parser.get('Payments', 'threshold')
 
 def calc_pool_perc():
     """
@@ -64,9 +66,15 @@ def calculate_total(collection):
 
     cursor.rewind()
 
+    print voters_tot_balance
+    print pool_days
+
     for i in cursor:
-        i['score'] = (i['day_in_pool'] / pool_days) + (int(i['balance']) / voters_tot_balance)
+        # i['score'] = (i['day_in_pool'] / pool_days) + (int(i['balance']) / voters_tot_balance)
+        i['score'] = (i['day_in_pool'] * int(i['balance'])) / (pool_days * voters_tot_balance)
         totscore += i['score']
+
+    print totscore
 
     total = dict()
     total['pool_days'] = pool_days
@@ -86,8 +94,12 @@ def calculate_score(voter_days, pool_days, voter_balance, voters_tot_balance):
     :return: voter score
     """
 
-    score = ((voter_days / pool_days) + (voter_balance / voters_tot_balance))
-    return round(score, 3)
+    print 'voter day: ' +str(voter_days)
+    print 'pool day: ' + str(voter_days)
+
+    # score = ((voter_days / pool_days) + (voter_balance / voters_tot_balance))
+    score = (voter_days * voter_balance) / (pool_days * voters_tot_balance)
+    return round(score, 5)
 
 
 def make_payment(address, amount):
@@ -169,16 +181,20 @@ last_payout = get_last_payout()
 
 for v in voters:
     if int(v['balance']) != 0:
-
+        # calculate score
         voter_score = calculate_score(v['day_in_pool'],tot['pool_days'],int(v['balance']),tot['voters_tot_balance'])
 
         if 'pending_balance' in v:
-            to_pay = calculate_payment(voter_score, last_payout, tot['totscore']) - 10000000 + int(v['pending_balance'])
+            print 'there is a pending balance of: ' + v['pending_balance']
+            to_pay = (calculate_payment(voter_score, last_payout, tot['totscore']) + int(v['pending_balance'])) - transaction_cost 
         else:
-            to_pay = calculate_payment(voter_score, last_payout, tot['totscore']) - 10000000
+            print 'there is no pending balance'
+            to_pay = calculate_payment(voter_score, last_payout, tot['totscore']) - transaction_cost
+        
+        print 'to pay is: ' + str(to_pay)
 
         # if to pay > 1 LSK
-        if to_pay > 100000000:
+        if to_pay > payment_threshold:
             # check if there is anny pending_balance
             if 'pending_balance' in v:
                 db.voters.update(
