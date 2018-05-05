@@ -30,6 +30,10 @@ getdelegateinfo = parser.get('Node', 'getdelegateinfo')
 pub_key = parser.get('Account', 'pub_key')
 username = parser.get('Account', 'username')
 
+transaction_cost = parser.get('Payments', 'cost')
+payment_threshold = parser.get('Payments', 'threshold')
+
+tot_score = 0
 
 def calc_pool_perc():
     """
@@ -69,12 +73,13 @@ def calculate_voter_score(voter_days, voter_balance, voters):
     cursor = voters.find({})
 
     for i in cursor:
-        i['score'] = (i['day_in_pool']/pool_days) + (int(i['balance']) / voters_balance)
+        # i['score'] = (i['day_in_pool']/pool_days) + (int(i['balance']) / voters_balance)
+        i['score'] = (i['day_in_pool'] * int(i['balance'])) / (pool_days * voters_tot_balance)
         totscore += i['score']
 
-    score = ((voter_days/pool_days) + (voter_balance / voters_balance))/totscore
-
-    return round(score, 3)
+    score = (voter_days * voter_balance) / (pool_days * voters_balance))
+    tot_score = totscore
+    return round(score, 5)
 
 
 def forged_from_last_payout():
@@ -113,10 +118,10 @@ def get_forging_info(address):
 
     if 'pending_balance' in voter:
         pending_balance = int(voter['pending_balance'])
-        balance = ((((forged_from_last_payout()['forged']) * perc_of_split) * score) + pending_balance) - 10000000
+        balance = ((((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) + pending_balance) - 10000000
     else:
         pending_balance = 0
-        balance = (((forged_from_last_payout()['forged']) * perc_of_split) * score) - 10000000
+        balance = (((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) - 10000000
 
 
     if voter:
