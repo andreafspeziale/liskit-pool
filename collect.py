@@ -2,6 +2,7 @@ import requests, json, datetime,logging
 from ConfigParser import SafeConfigParser
 from pymongo import MongoClient
 import os
+import time
 
 # parser
 parser = SafeConfigParser()
@@ -87,4 +88,4 @@ for v in voters:
 # check if a payout is ever be done, if not add an empty
 collections = db.collection_names()
 if "payouts" not in db.collection_names():
-    db.payouts.insert({'date': datetime.datetime.now(), 'current_balance': 0})
+    db.payouts.insert({'date': int(time.time()), 'current_balance': 0})
