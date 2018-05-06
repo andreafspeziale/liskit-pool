@@ -28,8 +28,8 @@ paymentendpoint = parser.get('Node', 'paymentendpoint')
 getdelegateinfo = parser.get('Node', 'getdelegateinfo')
 publickey = parser.get('Account', 'pub_key')
 
-transaction_cost = parser.get('Payments', 'cost')
-payment_threshold = parser.get('Payments', 'threshold')
+transaction_cost = int(parser.get('Payments', 'cost'))
+payment_threshold = int(parser.get('Payments', 'threshold'))
 
 def calc_pool_perc():
     """
@@ -74,7 +74,7 @@ def calculate_total(collection):
     total = dict()
     total['pool_days'] = pool_days
     total['voters_tot_balance'] = voters_tot_balance
-    total['totscore'] = totscore
+    total['totscore'] = round(totscore, 5)
 
     return total
 
@@ -89,12 +89,9 @@ def calculate_score(voter_days, pool_days, voter_balance, voters_tot_balance):
     :return: voter score
     """
 
-    print 'voter day: ' +str(voter_days)
-    print 'pool day: ' + str(voter_days)
-
     # score = ((voter_days / pool_days) + (voter_balance / voters_tot_balance))
     score = (voter_days * voter_balance) / (pool_days * voters_tot_balance)
-    return round(score, 5)
+    return round(score, 8)
 
 
 def make_payment(address, amount):
@@ -180,13 +177,9 @@ for v in voters:
         voter_score = calculate_score(v['day_in_pool'],tot['pool_days'],int(v['balance']),tot['voters_tot_balance'])
 
         if 'pending_balance' in v:
-            print 'there is a pending balance of: ' + v['pending_balance']
             to_pay = (calculate_payment(voter_score, last_payout, tot['totscore']) + int(v['pending_balance'])) - transaction_cost 
         else:
-            print 'there is no pending balance'
             to_pay = calculate_payment(voter_score, last_payout, tot['totscore']) - transaction_cost
-        
-        print 'to pay is: ' + str(to_pay)
 
         # if to pay > 1 LSK
         if to_pay > payment_threshold:
@@ -202,7 +195,7 @@ for v in voters:
                     True)
             # pay and stop
             res = make_payment(v['address'],to_pay)
-            info_str = "{} paid --> {}".format(res, round(to_pay/100000000, 3))
+            info_str = "{} paid --> {}".format(res, round(to_pay/100000000, 8))
             logging.info(info_str)
         else:
             # write pending db in database for that user
@@ -214,7 +207,7 @@ for v in voters:
                     }
                 },
                 True)
-            info_str = "{} pending --> {}".format(v['address'], round(to_pay/100000000, 3))
+            info_str = "{} pending --> {}".format(v['address'], round(to_pay/100000000, 8))
             logging.info(info_str)
 
 
