@@ -1,12 +1,10 @@
 from __future__ import division
-import requests
-import json
+import os, time, datetime, json, requests
 from flask import Flask
 from pymongo import MongoClient
 from flask import jsonify
 from flask_cors import CORS
 from ConfigParser import SafeConfigParser
-import os, time, datetime
 
 # flask settings
 app = Flask(__name__)
@@ -30,10 +28,8 @@ getdelegateinfo = parser.get('Node', 'getdelegateinfo')
 pub_key = parser.get('Account', 'pub_key')
 username = parser.get('Account', 'username')
 
-transaction_cost = parser.get('Payments', 'cost')
-payment_threshold = parser.get('Payments', 'threshold')
-
-tot_score = 0
+transaction_cost = int(parser.get('Payments', 'cost'))
+payment_threshold = int(parser.get('Payments', 'threshold'))
 
 def calc_pool_perc():
     """
@@ -78,8 +74,8 @@ def calculate_voter_score(voter_days, voter_balance, voters):
         totscore += i['score']
 
     score = (voter_days * voter_balance) / (pool_days * voters_balance)
-    tot_score = totscore
-    return round(score, 5)
+    
+    return {'score': round(score, 8), 'totscore': round(totscore, 8)}
 
 
 def forged_from_last_payout():
@@ -109,7 +105,9 @@ def get_forging_info(address):
     voters = db.voters
     voter = voters.find_one({'address': address})
 
-    score = calculate_voter_score(voter['day_in_pool'], int(voter['balance']), voters)
+    scoreandtot = calculate_voter_score(voter['day_in_pool'], int(voter['balance']), voters)
+    score = scoreandtot['score']
+    tot_score = scoreandtot['totscore']
 
     if (parser.get('Pool', 'dynamic_pool') == 'True'):
         perc_of_split = float(calc_pool_perc())
@@ -118,14 +116,24 @@ def get_forging_info(address):
 
     if 'pending_balance' in voter:
         pending_balance = int(voter['pending_balance'])
-        balance = ((((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) + pending_balance) - transaction_cost
+        balance = ((((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) + pending_balance)
     else:
         pending_balance = 0
-        balance = (((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) - transaction_cost
+        balance = (((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score))
 
 
     if voter:
-        output = {'address': voter['address'], 'score': score, 'earn': round(balance/100000000,3), 'days': voter['day_in_pool'],'pending_balance':round(pending_balance/100000000,3)}
+        output = {
+            'address': voter['address'],
+            'voter_balance' : int(voter['balance']),
+            'score': score, 
+            'earn': round(balance/100000000,3), 
+            'days': voter['day_in_pool'],
+            'pending_payout':round(pending_balance/100000000,8),
+            'transaction_cost': transaction_cost,
+            'payment_threshold': payment_threshold,
+            'pool_tot_score': tot_score
+        }
     else:
         output = "No such name"
     return jsonify({'result': output})
