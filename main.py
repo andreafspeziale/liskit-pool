@@ -105,7 +105,14 @@ def get_forging_info(address):
     voters = db.voters
     voter = voters.find_one({'address': address})
 
-    scoreandtot = calculate_voter_score(voter['day_in_pool'], int(voter['balance']), voters)
+    try:
+        scoreandtot = calculate_voter_score(voter['day_in_pool'], int(voter['balance']), voters)
+    except Exception as e:
+        print 'Error'
+        print e
+        output = 'Not found'
+        return jsonify({'result': output, 'success': False})
+        
     score = scoreandtot['score']
     tot_score = scoreandtot['totscore']
 
@@ -121,22 +128,19 @@ def get_forging_info(address):
         pending_balance = 0
         balance = (((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) - transaction_cost
 
-
-    if voter:
-        output = {
-            'address': voter['address'],
-            'voter_balance' : int(voter['balance']),
-            'score': score, 
-            'earn': round(balance/100000000,3), 
-            'days': voter['day_in_pool'],
-            'pending_payout':round(pending_balance/100000000,8),
-            'transaction_cost': transaction_cost,
-            'payment_threshold': payment_threshold,
-            'pool_tot_score': tot_score
-        }
-    else:
-        output = "No such name"
-    return jsonify({'result': output})
+    output = {
+        'address': voter['address'],
+        'voter_balance' : int(voter['balance']),
+        'score': score, 
+        'earn': round(balance/100000000,3), 
+        'days': voter['day_in_pool'],
+        'pending_payout':round(pending_balance/100000000,8),
+        'transaction_cost': transaction_cost,
+        'payment_threshold': payment_threshold,
+        'pool_tot_score': tot_score
+    }
+    
+    return jsonify({'result': output, 'success': True})
 
 
 @app.route("/getlastpayout/", methods=['GET'], endpoint='getlastpayout')
