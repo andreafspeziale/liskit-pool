@@ -97,3 +97,4 @@ RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
 # ToDo
 
 - move all to python3
+- remove all GDT from calculation and payments so voters will get more than before
