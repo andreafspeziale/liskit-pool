@@ -3,6 +3,7 @@ protocol: http://
 ip:
 port: :
 getvotersendpoint:  /api/delegates/voters?publicKey=
+getvotesendpoint: /api/accounts/delegates/?address=
 paymentendpoint: /api/transactions
 getbalanceendpoint: /api/accounts/getBalance?address=
 getdelegateinfo: /api/delegates/get?username=
@@ -29,3 +30,7 @@ name:
 [Payments]
 threshold:
 cost:
+
+[Skip]
+gdt: array of gdt address
+elite: array of elite address
