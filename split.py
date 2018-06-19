@@ -177,8 +177,10 @@ for v in voters:
         voter_score = calculate_score(v['day_in_pool'],tot['pool_days'],int(v['balance']),tot['voters_tot_balance'])
 
         if 'pending_balance' in v:
+            net_to_pay = (calculate_payment(voter_score, last_payout, tot['totscore']) + int(v['pending_balance']))
             to_pay = (calculate_payment(voter_score, last_payout, tot['totscore']) + int(v['pending_balance'])) - transaction_cost 
         else:
+            net_to_pay = calculate_payment(voter_score, last_payout, tot['totscore'])
             to_pay = calculate_payment(voter_score, last_payout, tot['totscore']) - transaction_cost
 
         # if to pay > 1 LSK
@@ -203,11 +205,11 @@ for v in voters:
                 {'address': v['address']},
                 {
                     '$set': {
-                        'pending_balance': to_pay
+                        'pending_balance': net_to_pay
                     }
                 },
                 True)
-            info_str = "{} pending --> {}".format(v['address'], round(to_pay/100000000, 8))
+            info_str = "{} pending --> {}".format(v['address'], round(net_to_pay/100000000, 8))
             logging.info(info_str)
 
 
