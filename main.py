@@ -123,7 +123,7 @@ def get_forging_info(address):
 
     if 'pending_balance' in voter:
         pending_balance = int(voter['pending_balance'])
-        balance = ((((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) + pending_balance) - transaction_cost
+        balance = ((((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) + pending_balance) # - transaction_cost
     else:
         pending_balance = 0
         balance = (((forged_from_last_payout()['forged']) * perc_of_split) * (score / tot_score)) - transaction_cost
